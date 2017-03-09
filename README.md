@@ -1,2 +1,2 @@
-# ML-training
-Some machine learning algorithms implementations in Python
+# Machine Learning Algorithms
+Some machine learning algorithms implementations in Python and Numpy
