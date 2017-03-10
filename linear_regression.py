@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 plt.style.use('ggplot')
 
 
@@ -15,19 +16,23 @@ class LinearRegression:
 
 
     def _optimize(self, X, y, tolerance):
+        features = self._features(X)
         self._coef = np.zeros(X.shape[1] + 1)
+
         gradient = [tolerance, tolerance]
+        gradient_norm = np.linalg.norm(gradient)
         step = 1
 
-        while(np.linalg.norm(gradient) > tolerance):
-            gradient = -2 * np.dot(self._features(X).T,
-                                   (y - self._features(X).dot(self._coef))) \
+        while(gradient_norm > tolerance):
+            gradient = -2 * np.dot(features.T,
+                                   (y - features.dot(self._coef))) \
                        + 2 * self._l2_penalty * np.concatenate(([0], self._coef[1:]))
-            step = np.minimum(1.0 / np.linalg.norm(gradient), step)
+            gradient_norm = np.linalg.norm(gradient)
+            step = np.minimum(1.0 / gradient_norm, step)
             self._coef -= step * gradient
 
 
-    def fit(self, X, y, tolerance=1e-3):
+    def fit(self, X, y, tolerance=1e-6):
         X = np.array(X)
         y = np.array(y)
 
@@ -63,25 +68,53 @@ class LinearRegression:
         return 1 - RSS / TSS
 
 
-def generateData(samples, features, yfunc=lambda x: np.sum(x)):
-    X = np.random.rand(samples, features)
-    y = np.array([yfunc(row) for row in X])
-    return X, y
+if __name__ == "__main__":
+    samples = 100
+    lsr = LinearRegression()
+    fig = plt.figure(figsize=(10, 5))
 
+    #########################################
+    ## 2d, one feature
+    #########################################
 
-X, y = generateData(300, 1, lambda x : np.sum(x) +
-                    5 * np.sum(x)**2 +
-                    0.5 * np.random.randn())
+    ax1 = fig.add_subplot(121)
+    X = np.random.rand(samples, 1)
+    y = (3 - 2*X + 0.5*np.random.rand(samples, 1)).reshape(samples)
 
-lsr = LinearRegression(l2_penalty=0.0)
-lsr.fit(X, y)
-predictions = lsr.predict(X)
+    lsr.fit(X, y)
+    slope, intercept = lsr._coef
+    ax1.scatter(X, y, c='g')
+    ax1.plot([0, 1], [slope, slope + intercept])
+    plt.title("R squared: {:f}".format(lsr.r_squared(X, y)))
 
-lineX = np.array([X.min(), X.max()])
-lineY = lsr._coef[1] * lineX + lsr._coef[0]
-plt.plot(X, y, '.b')
-plt.plot(lineX, lineY, '-r', label='regression line')
-plt.legend(loc=1)
-plt.title("R^2: {:f}".format(lsr.r_squared(X, y)))
-plt.show()
+    #########################################
+    ## 3d, polynomial features
+    #########################################
+    func = lambda x, x2, y, y2: 5 + x + 5 * x2 + 2 * y2 + 2 * np.random.rand()
+    x1 = np.random.rand(samples)
+    y1 = np.random.rand(samples)
+    x2 = x1**2
+    y2 = y1**2
+    X = np.array([x1, x2, y1, y2]).T
+    y = np.array([func(*row) for row in X])
 
+    lsr.fit(X, y)
+
+    ax2 = fig.add_subplot(122, projection='3d')
+
+    xx = np.linspace(0, 1, samples)
+    yy = np.linspace(0, 1, samples)
+    xx, yy = np.meshgrid(xx, yy)
+
+    zz = np.ones((samples, samples)) * lsr._coef[0] + \
+         xx * lsr._coef[1] + xx**2 * lsr._coef[2] + \
+         yy * lsr._coef[3] + yy**2 * lsr._coef[4]
+
+    ax2.scatter(x1, y1, y, c='g')
+
+    ax2.plot_surface(xx, yy, zz, antialiased=False, cmap='gray')
+
+    ########################################
+
+    plt.title("R squared: {:f}".format(lsr.r_squared(X, y)))
+    plt.show()
