@@ -68,6 +68,11 @@ class LinearRegression:
         return 1 - RSS / TSS
 
 
+    def set_params(self, params):
+        self._coef = np.array(params)
+
+
+
 if __name__ == "__main__":
     samples = 100
     lsr = LinearRegression()
