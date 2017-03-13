@@ -1,13 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-plt.style.use('ggplot')
-
 
 class LinearRegression:
-    def __init__(self, l2_penalty=0):
+    def __init__(self, l2_penalty=0, l1_penalty=0):
         self._coef = np.array([])
         self._l2_penalty = l2_penalty
+        self._l1_penalty = l1_penalty
 
 
     def _features(self, X):
@@ -21,15 +18,19 @@ class LinearRegression:
 
         gradient = [tolerance, tolerance]
         gradient_norm = np.linalg.norm(gradient)
-        step = 1
+        step = 1.0
 
-        while(gradient_norm > tolerance):
+        while(gradient_norm > tolerance and step > tolerance):
             gradient = -2 * np.dot(features.T,
                                    (y - features.dot(self._coef))) \
-                       + 2 * self._l2_penalty * np.concatenate(([0], self._coef[1:]))
+                       + self._l2_penalty * np.concatenate(([0], self._coef[1:])) \
+                       + self._l1_penalty * np.sign(np.concatenate(([0], self._coef[1:])))
             gradient_norm = np.linalg.norm(gradient)
-            step = np.minimum(1.0 / gradient_norm, step)
+            step = np.minimum(1.0 / gradient_norm, step * 0.9999)
             self._coef -= step * gradient
+
+        if self._l1_penalty:
+            self._coef[np.abs(self._coef) < tolerance*10] *= 0
 
 
     def fit(self, X, y, tolerance=1e-6):
@@ -74,13 +75,18 @@ class LinearRegression:
 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    from polynomial_features import PolynomialFeatures
+    from mpl_toolkits.mplot3d import Axes3D
+    plt.style.use('ggplot')
+
     samples = 100
-    lsr = LinearRegression()
     fig = plt.figure(figsize=(10, 5))
 
     #########################################
     ## 2d, one feature
     #########################################
+    lsr = LinearRegression()
 
     ax1 = fig.add_subplot(121)
     X = np.random.rand(samples, 1)
@@ -95,15 +101,16 @@ if __name__ == "__main__":
     #########################################
     ## 3d, polynomial features
     #########################################
-    func = lambda x, x2, y, y2: 5 + x + 5 * x2 + 2 * y2 + 2 * np.random.rand()
-    x1 = np.random.rand(samples)
-    y1 = np.random.rand(samples)
-    x2 = x1**2
-    y2 = y1**2
-    X = np.array([x1, x2, y1, y2]).T
-    y = np.array([func(*row) for row in X])
+    lsr = LinearRegression(l1_penalty=1)
 
-    lsr.fit(X, y)
+    func = lambda x, y: 5 + 2*x + y + 2*x**2 + 0.25*np.random.randn()
+    x = np.random.rand(samples)
+    y = np.random.rand(samples)
+    X = np.array([x, y]).T
+    z = np.array([func(*row) for row in X])
+    X, names = PolynomialFeatures.get_features(X, 2, names=['x', 'y'])
+
+    lsr.fit(X, z)
 
     ax2 = fig.add_subplot(122, projection='3d')
 
@@ -112,14 +119,18 @@ if __name__ == "__main__":
     xx, yy = np.meshgrid(xx, yy)
 
     zz = np.ones((samples, samples)) * lsr._coef[0] + \
-         xx * lsr._coef[1] + xx**2 * lsr._coef[2] + \
-         yy * lsr._coef[3] + yy**2 * lsr._coef[4]
+         xx * lsr._coef[1] + xx**2 * lsr._coef[3] + \
+         yy * lsr._coef[2] + yy**2 * lsr._coef[4]
 
-    ax2.scatter(x1, y1, y, c='g')
+    ax2.scatter(x, y, z, c='g')
 
     ax2.plot_surface(xx, yy, zz, antialiased=False, cmap='gray')
+    plt.title("R squared: {:f}".format(lsr.r_squared(X, z)))
 
-    ########################################
+    print("true relationship: 5 + 2*x + y + 2*x^2")
+    print("coefficients:")
+    for name, coef in zip(["slope"] + names, lsr._coef):
+        print("{:5s}: {:f}".format(name, coef))
 
-    plt.title("R squared: {:f}".format(lsr.r_squared(X, y)))
+    ###########################################
     plt.show()
