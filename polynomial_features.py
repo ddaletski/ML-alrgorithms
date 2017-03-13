@@ -16,11 +16,16 @@ class PolynomialFeatures:
 
         kwargs:
             names: [str]      - list of feature names used to generate names for polynomial features
+            power_pattern: function(feature: str, power: int) -> str       - function to generate name of n-th power of feature
+            product_pattern: function(feature1: str, feature2: str) -> str - function to generate name powers mix of 2 features powers
 
         returns:
             (data: ndarray, names: [str]) - data: records of data with polynomial features
                                             names: names of these features (e.g.: "x * y^2")
         """
+
+        power_pattern = kwargs["power_pattern"] if kwargs.get("power_pattern") else lambda f, p: "%s^%d" % (f, p)
+        product_pattern = kwargs["product_pattern"] if kwargs.get("product_pattern") else lambda f1, f2: "%s * %s" % (f1, f2)
         names = kwargs["names"] if kwargs.get("names") else ["x%d" % i for i in range(X.shape[1])]
 
         if mix:
@@ -35,16 +40,16 @@ class PolynomialFeatures:
             for idx, feature in enumerate(names):
                 if power[idx] > 1:
                     if count:
-                        name += " * %s^%d" % (feature, power[idx])
+                        name = product_pattern(name, power_pattern(feature, power[idx]))
                     else:
-                        name += "%s^%d" % (feature, power[idx])
+                        name = power_pattern(feature, power[idx])
                     count += 1
 
                 elif power[idx] == 1:
                     if count:
-                        name += " * " + feature
+                        name = product_pattern(name, feature)
                     else:
-                        name += feature
+                        name = feature
                     count += 1
             poly_names.append(name)
 
@@ -106,6 +111,8 @@ class PolynomialFeatures:
 
 if __name__ == "__main__":
     X = np.array([[x, y] for x, y in zip(range(10), reversed(range(10)))])
-    X, names = PolynomialFeatures.get_features(X, 3, mix=1, names=["x", "y"])
+    X, names = PolynomialFeatures.get_features(X, 3, mix=1, names=["x", "y"],
+                                               power_pattern=lambda f,p: "(%s^%d)" % (f, p),
+                                               product_pattern=lambda f1,f2: f1+f2)
     print(names)
     print(X)
