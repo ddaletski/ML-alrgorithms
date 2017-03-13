@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
     ax2.scatter(x, y, z, c='g')
 
-    ax2.plot_surface(xx, yy, zz, antialiased=False, cmap='gray')
+    ax2.plot_surface(xx, yy, zz, antialiased=False, alpha=0.25)
     plt.title("R squared: {:f}".format(lsr.r_squared(X, z)))
 
     print("true relationship: 5 + 2*x + y + 2*x^2")
