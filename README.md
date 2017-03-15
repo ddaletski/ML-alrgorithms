@@ -1,7 +1,7 @@
 # Machine Learning Algorithms
 Some machine learning algorithms implementations in Python and Numpy
 
-##Modules
+## Modules
 
 ### Linear regression
 *linear_regression.py* contains `LinearRegression` class - an implementation of linear regression model with L1 and L2 regulatization
