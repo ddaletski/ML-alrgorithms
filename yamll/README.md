@@ -1,4 +1,4 @@
-# Yet Another Machine Learning Library
+# Machine Learning Algorithms
 Some machine learning algorithms implementation in Python and Numpy
 
 ## Modules
