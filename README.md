@@ -1,5 +1,5 @@
 # Machine Learning Algorithms
-Some machine learning algorithms implementations in Python and Numpy
+Some machine learning algorithms implementation in Python and Numpy
 
 ## Modules
 
