@@ -11,8 +11,14 @@ class LinearRegression:
         ones = np.ones((X.shape[0], 1))
         return np.hstack((ones, X))
 
+    
+    def _optimize_closed(self, X, y):
+        features = self._features(X)
+        self._coef = np.zeros((X.shape[1] + 1, y.shape[1]))
+        self._coef = np.linalg.inv(features.T.dot(features)).dot(features.T).dot(y)
+        
 
-    def _optimize(self, X, y, tolerance):
+    def _optimize_gradient(self, X, y, tolerance):
         features = self._features(X)
         self._coef = np.zeros((X.shape[1] + 1, y.shape[1]))
 
@@ -33,12 +39,12 @@ class LinearRegression:
             self._coef[np.abs(self._coef) < tolerance*10] *= 0
 
 
-    def fit(self, X, y, tolerance=1e-6):
+    def fit(self, X, y, method='gd', tolerance=1e-6):
         X = np.array(X)
         y = np.array(y)
 
         if len(y.shape) == 1:
-            y = y.reshape(y.shape[0], 1)
+            y = y.reshape(-1, 1)
         elif len(y.shape) > 2:
             raise ValueError('y must be a 1- or 2-dimensional array')
 
@@ -46,8 +52,11 @@ class LinearRegression:
             raise ValueError('X must be a 2-dimensional array')
         elif X.shape[0] != y.shape[0]:
             raise ValueError('first dimensions of X and y must be the same')
-
-        self._optimize(X, y, tolerance)
+           
+        if method == 'gd':
+            self._optimize_gradient(X, y, tolerance)
+        elif method == 'closed':
+            self._optimize_closed(X, y)
 
 
     def predict(self, X):
@@ -67,11 +76,10 @@ class LinearRegression:
         """ computes R-squared statistic based on (X => yhat) and y"""
         y = np.array(y)
         if len(y.shape) == 1:
-            y.reshape((y.shape[0], 1))
+            y = y.reshape((-1, 1))
 
         yhat = self.predict(X)
         residuals = yhat - y
-        print(residuals)
         RSS = np.diag(np.dot(residuals.T, residuals))
         TSS = np.array([np.var(y[:, i]) * y.shape[0] for i in range(y.shape[1])])
         return 1 - RSS / TSS
